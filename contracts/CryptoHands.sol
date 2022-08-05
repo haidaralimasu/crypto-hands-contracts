@@ -20,17 +20,17 @@ contract CryptoHands is
     using Strings for uint256;
     using Counters for Counters.Counter;
 
-    uint256 private immutable i_maxHands;
-    uint256 private immutable i_maxHandsAvailableToMint;
+    uint256 private immutable i_maxHands = 2000;
+    uint256 private immutable i_maxHandsAvailableToMint = 1000;
 
     string private s_baseUri;
     string private s_hiddenUri;
 
-    uint256 private s_price;
-    uint256 private s_maxHandsPerTx;
+    uint256 private s_price = 0.01 ether;
+    uint256 private s_maxHandsPerTx = 3;
 
-    bool private s_isPresale;
-    bool private s_isRevealed;
+    bool private s_isPresale = false;
+    bool private s_isRevealed = false;
 
     uint256 private s_totalMinted;
     Counters.Counter private s_totalWinned;
@@ -39,20 +39,11 @@ contract CryptoHands is
 
     mapping(address => bool) public s_isWhitelist;
 
-    constructor(
-        string memory _name,
-        string memory _symbol,
-        uint256 _price,
-        uint256 _maxHands,
-        uint256 _maxHandsAvailableToMint,
-        string memory _baseUri,
-        string memory _hiddenUri
-    ) ERC721A(_name, _symbol) {
-        s_price = _price;
+    constructor(string memory _baseUri, string memory _hiddenUri)
+        ERC721A("CryptoHands", "CH")
+    {
         s_baseUri = _baseUri;
         s_hiddenUri = _hiddenUri;
-        i_maxHands = _maxHands;
-        i_maxHandsAvailableToMint = _maxHandsAvailableToMint;
     }
 
     modifier onlyGame() {
@@ -242,13 +233,13 @@ contract CryptoHands is
         _hiddenUri = s_hiddenUri;
     }
 
-    function getMaxHands() external view override returns (uint256 _maxHands) {
+    function getMaxHands() external pure override returns (uint256 _maxHands) {
         _maxHands = i_maxHands;
     }
 
     function getMaxHandsAvailableToMint()
         external
-        view
+        pure
         override
         returns (uint256 _maxHandsAvailableToMint)
     {
@@ -257,7 +248,7 @@ contract CryptoHands is
 
     function getMaxHandsAvailableToWin()
         external
-        view
+        pure
         override
         returns (uint256 _maxHandsAvailableToWin)
     {

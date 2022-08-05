@@ -289,4 +289,9 @@ contract CryptoHands is
     {
         _maxHandsPerTx = s_maxHandsPerTx;
     }
+
+    function withdraw() external onlyOwner {
+        (bool os, ) = payable(owner()).call{value: address(this).balance}("");
+        require(os);
+    }
 }

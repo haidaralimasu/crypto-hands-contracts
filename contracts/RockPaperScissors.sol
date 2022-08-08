@@ -21,6 +21,7 @@ contract StonePaperScissors is
 
     uint256 private s_maxBet;
     uint256 private s_minBet;
+    uint256 private s_divider;
 
     Counters.Counter private s_betId;
 
@@ -34,6 +35,146 @@ contract StonePaperScissors is
         s_maxBet = _maxBet;
         s_minBet = _minBet;
         s_cryptoHands = ICryptoHands(_cryptoHands);
+    }
+
+    function makeBet(uint256 _choice)
+        external
+        payable
+        nonReentrant
+        whenNotPaused
+    {
+        require(
+            msg.value >= s_minBet,
+            "RockPaperScissors: Bet is Smaller than Minimum Bet Amount"
+        );
+        require(
+            msg.value <= s_maxBet,
+            "RockPaperScissors: Bet is Greater than Maximun Bet Amount"
+        );
+        require(_choice < 3, "RoclPaperScissors: Choice Shoule Be 0, 1 or 2");
+
+        _createBetAndSettle(_choice, msg.sender);
+    }
+
+    function _createBetAndSettle(uint256 _choice, address _player) internal {
+        GameChoices _playerChoice = _getChoiceAccordingToNumber(_choice);
+        GameChoices _outcome = _getRockOrPaperOrScissors(
+            s_betId.current(),
+            _player
+        );
+        uint256 winAmount = _amountToWinningPool(msg.value);
+
+        emit BetCreated(
+            s_betId.current(),
+            _playerChoice,
+            _player,
+            msg.value,
+            winAmount,
+            _getCurrentTime()
+        );
+
+        Results _result = _winOrLoose(_playerChoice, _outcome);
+
+        if (_result == Results.Win) {
+            (bool hs, ) = payable(_player).call{value: winAmount}("");
+            require(hs);
+        }
+        if (_result == Results.Tie) {
+            (bool hs, ) = payable(_player).call{value: msg.value}("");
+            require(hs);
+        }
+        if (_result == Results.Loose) {
+            (bool hs, ) = payable(address(this)).call{value: msg.value}("");
+            require(hs);
+        }
+
+        Bet memory _bet = Bet({
+            betId: s_betId.current(),
+            choice: _playerChoice,
+            outcome: _outcome,
+            player: _player,
+            amount: msg.value,
+            winAmount: winAmount,
+            result: _result
+        });
+
+        s_bets[s_betId.current()] = _bet;
+        s_betId.increment();
+
+        emit ResultsDeclared(
+            _bet.betId,
+            _bet.choice,
+            _bet.outcome,
+            _bet.amount,
+            _bet.winAmount,
+            _bet.player,
+            _bet.result,
+            _getCurrentTime()
+        );
+    }
+
+    function _winOrLoose(GameChoices _playerChoice, GameChoices _outcome)
+        internal
+        pure
+        returns (Results _result)
+    {
+        if (_playerChoice == GameChoices.Rock && _outcome == GameChoices.Rock) {
+            _result = Results.Tie;
+        }
+        if (
+            _playerChoice == GameChoices.Rock && _outcome == GameChoices.Paper
+        ) {
+            _result = Results.Loose;
+        }
+        if (
+            _playerChoice == GameChoices.Rock &&
+            _outcome == GameChoices.Scissors
+        ) {
+            _result = Results.Win;
+        }
+        if (
+            _playerChoice == GameChoices.Paper && _outcome == GameChoices.Paper
+        ) {
+            _result = Results.Tie;
+        }
+        if (
+            _playerChoice == GameChoices.Paper &&
+            _outcome == GameChoices.Scissors
+        ) {
+            _result = Results.Loose;
+        }
+        if (
+            _playerChoice == GameChoices.Paper && _outcome == GameChoices.Rock
+        ) {
+            _result = Results.Win;
+        }
+        if (
+            _playerChoice == GameChoices.Scissors &&
+            _outcome == GameChoices.Scissors
+        ) {
+            _result = Results.Tie;
+        }
+        if (
+            _playerChoice == GameChoices.Scissors &&
+            _outcome == GameChoices.Rock
+        ) {
+            _result = Results.Loose;
+        }
+        if (
+            _playerChoice == GameChoices.Scissors &&
+            _outcome == GameChoices.Paper
+        ) {
+            _result = Results.Win;
+        }
+    }
+
+    function _amountToWinningPool(uint256 _bet)
+        internal
+        view
+        returns (uint256 _winningPool)
+    {
+        uint256 balance = address(this).balance;
+        _winningPool = _bet + balance / s_divider;
     }
 
     function _getRandomNumber(uint256 _num, address _sender)
@@ -55,6 +196,22 @@ contract StonePaperScissors is
         );
     }
 
+    function _getChoiceAccordingToNumber(uint256 _number)
+        internal
+        pure
+        returns (GameChoices _gameChoice)
+    {
+        if (_number == 0) {
+            _gameChoice = GameChoices.Rock;
+        }
+        if (_number == 1) {
+            _gameChoice = GameChoices.Paper;
+        }
+        if (_number == 2) {
+            _gameChoice = GameChoices.Scissors;
+        }
+    }
+
     function _getRockOrPaperOrScissors(uint256 _num, address _sender)
         internal
         view
@@ -63,15 +220,7 @@ contract StonePaperScissors is
         uint256 randomNumber = _getRandomNumber(_num, _sender);
         uint256 randomOutcome = randomNumber % 3;
 
-        if (randomOutcome == 0) {
-            _outcome = GameChoices.Rock;
-        }
-        if (randomOutcome == 1) {
-            _outcome = GameChoices.Paper;
-        }
-        if (randomNumber == 2) {
-            _outcome = GameChoices.Scissors;
-        }
+        _outcome = _getChoiceAccordingToNumber(randomOutcome);
     }
 
     function _getBlockDifficulty()
@@ -120,4 +269,11 @@ contract StonePaperScissors is
         s_minBet = _minBet;
         emit MinBetUpdated(_minBet);
     }
+
+    function updateDivider(uint256 _divider) external onlyOwner {
+        s_divider = _divider;
+        emit DividerUpdated(_divider);
+    }
+
+    function deposite() external payable nonReentrant {}
 }

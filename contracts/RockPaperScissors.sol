@@ -259,7 +259,15 @@ contract RockPaperScissors is
         _blockNumber = block.number;
     }
 
-    function _getMaxBet() external view returns (uint256 _maxBet) {
+    function getGameAddress()
+        internal
+        view
+        returns (ICryptoHands _gameAddress)
+    {
+        _gameAddress = s_cryptoHands;
+    }
+
+    function getMaxBet() external view returns (uint256 _maxBet) {
         _maxBet = s_maxBet;
     }
 

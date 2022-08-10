@@ -104,6 +104,7 @@ contract CryptoHands is
         override
         winCompliance
         onlyGame
+        whenNotPaused
     {
         _mintHands(_winner, 1);
         emit HandsWon(_winner);

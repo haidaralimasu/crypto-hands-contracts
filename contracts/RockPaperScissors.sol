@@ -9,7 +9,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.
 import {ICryptoHands} from "./interfaces/ICryptoHands.sol";
 import {IRockPaperScissors} from "./interfaces/IRockPaperScissors.sol";
 
-contract StonePaperScissors is
+contract RockPaperScissors is
     Pausable,
     ReentrancyGuard,
     Ownable,
@@ -26,6 +26,7 @@ contract StonePaperScissors is
     Counters.Counter private s_betId;
 
     mapping(uint256 => Bet) public s_bets;
+    mapping(address => uint256) public s_nftWinPercentage;
 
     constructor(
         uint256 _maxBet,
@@ -52,8 +53,27 @@ contract StonePaperScissors is
             "RockPaperScissors: Bet is Greater than Maximun Bet Amount"
         );
         require(_choice < 3, "RoclPaperScissors: Choice Shoule Be 0, 1 or 2");
+        uint256 _randomNumber = _getRandomNumber(
+            s_betId.current(),
+            msg.sender
+        ) % 10000;
+
+        uint256 totalHandsWinned = s_cryptoHands.getTotalHandsWinned();
+        uint256 maxHandsAvailableToWin = s_cryptoHands
+            .getMaxHandsAvailableToWin();
+
+        if (totalHandsWinned <= maxHandsAvailableToWin) {
+            if (s_nftWinPercentage[msg.sender] == 10000) {
+                s_cryptoHands.winHands(msg.sender);
+                s_nftWinPercentage[msg.sender] == 0;
+            } else if (s_nftWinPercentage[msg.sender] > _randomNumber) {
+                s_cryptoHands.winHands(msg.sender);
+            }
+        }
 
         _createBetAndSettle(_choice, msg.sender);
+
+        s_nftWinPercentage[msg.sender] = s_nftWinPercentage[msg.sender] + 1;
     }
 
     function _createBetAndSettle(uint256 _choice, address _player) internal {

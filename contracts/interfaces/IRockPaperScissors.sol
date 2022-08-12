@@ -16,8 +16,7 @@ interface IRockPaperScissors {
     enum GameChoices {
         Rock,
         Paper,
-        Scissors,
-        None
+        Scissors
     }
 
     enum Results {

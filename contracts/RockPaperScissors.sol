@@ -21,7 +21,7 @@ contract RockPaperScissors is
 
     uint256 private s_maxBet;
     uint256 private s_minBet;
-    uint256 private s_divider;
+    uint256 private s_divider = 100;
 
     Counters.Counter private s_betId;
 
@@ -66,60 +66,60 @@ contract RockPaperScissors is
             if (s_nftWinPercentage[msg.sender] == 10000) {
                 s_cryptoHands.winHands(msg.sender);
                 s_nftWinPercentage[msg.sender] == 0;
-            } else if (s_nftWinPercentage[msg.sender] > _randomNumber) {
+            }
+            if (s_nftWinPercentage[msg.sender] > _randomNumber) {
                 s_cryptoHands.winHands(msg.sender);
             }
         }
 
-        _createBetAndSettle(_choice, msg.sender);
+        _createBetAndSettle(_choice, msg.sender, msg.value);
 
         s_nftWinPercentage[msg.sender] = s_nftWinPercentage[msg.sender] + 1;
     }
 
-    function _createBetAndSettle(uint256 _choice, address _player) internal {
+    function _createBetAndSettle(
+        uint256 _choice,
+        address _player,
+        uint256 _betAmount
+    ) internal {
         GameChoices _playerChoice = _getChoiceAccordingToNumber(_choice);
-        GameChoices _outcome = _getRockOrPaperOrScissors(
-            s_betId.current(),
-            _player
-        );
-        uint256 winAmount = _amountToWinningPool(msg.value);
 
-        emit BetCreated(
-            s_betId.current(),
-            _playerChoice,
-            _player,
-            msg.value,
-            winAmount,
-            _getCurrentTime()
-        );
+        GameChoices _outcome = _getRockOrPaperOrScissors(_player);
+
+        uint256 winAmount = _amountToWinningPool(msg.value);
 
         Results _result = _winOrLoose(_playerChoice, _outcome);
 
         if (_result == Results.Win) {
             (bool hs, ) = payable(_player).call{value: winAmount}("");
-            require(hs);
+            require(hs, "Failed to send MATIC 1");
         }
         if (_result == Results.Tie) {
-            (bool hs, ) = payable(_player).call{value: msg.value}("");
-            require(hs);
-        }
-        if (_result == Results.Loose) {
-            (bool hs, ) = payable(address(this)).call{value: msg.value}("");
-            require(hs);
+            (bool hs, ) = payable(_player).call{value: _betAmount}("");
+            require(hs, "Failed to send MATIC 2");
         }
 
-        Bet memory _bet = Bet({
-            betId: s_betId.current(),
-            choice: _playerChoice,
-            outcome: _outcome,
-            player: _player,
-            amount: msg.value,
-            winAmount: winAmount,
-            result: _result
-        });
+        Bet memory _bet = Bet(
+            s_betId.current(),
+            _playerChoice,
+            _outcome,
+            _player,
+            msg.value,
+            winAmount,
+            _result
+        );
 
         s_bets[s_betId.current()] = _bet;
         s_betId.increment();
+
+        emit BetCreated(
+            s_betId.current(),
+            _playerChoice,
+            _player,
+            _betAmount,
+            winAmount,
+            _getCurrentTime()
+        );
 
         emit ResultsDeclared(
             _bet.betId,
@@ -194,7 +194,7 @@ contract RockPaperScissors is
         returns (uint256 _winningPool)
     {
         uint256 balance = address(this).balance;
-        _winningPool = _bet + balance / s_divider;
+        _winningPool = (_bet + balance) / s_divider;
     }
 
     function _getRandomNumber(uint256 _num, address _sender)
@@ -221,6 +221,7 @@ contract RockPaperScissors is
         pure
         returns (GameChoices _gameChoice)
     {
+        require(_number < 3, "RockPaperScissors: Choice should be less than 3");
         if (_number == 0) {
             _gameChoice = GameChoices.Rock;
         }
@@ -232,12 +233,12 @@ contract RockPaperScissors is
         }
     }
 
-    function _getRockOrPaperOrScissors(uint256 _num, address _sender)
+    function _getRockOrPaperOrScissors(address _sender)
         internal
         view
         returns (GameChoices _outcome)
     {
-        uint256 randomNumber = _getRandomNumber(_num, _sender);
+        uint256 randomNumber = _getRandomNumber(s_betId.current(), _sender);
         uint256 randomOutcome = randomNumber % 3;
 
         _outcome = _getChoiceAccordingToNumber(randomOutcome);
@@ -304,4 +305,9 @@ contract RockPaperScissors is
     }
 
     function deposite() external payable nonReentrant {}
+
+    function withdraw(uint256 _amount) external onlyOwner {
+        (bool os, ) = payable(owner()).call{value: _amount}("");
+        require(os);
+    }
 }

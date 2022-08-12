@@ -29,8 +29,8 @@ async function main() {
 
   console.log("Collecting artifacts for RockPaperScissors......");
 
-  const maxBet = "1000000000000000000";
-  const minBet = "10000000000000000000";
+  const minBet = "1";
+  const maxBet = "10000000000000000000";
   const rpsArgs = [maxBet, minBet, cryptoHands.address];
 
   console.log("Deploying RockPaperScissors......");

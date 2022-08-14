@@ -5,6 +5,7 @@ pragma solidity ^0.8.7;
 import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
+import {IERC721A} from "erc721a/contracts/interfaces/IERC721A.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {ICryptoHands} from "./interfaces/ICryptoHands.sol";
 import {IRockPaperScissors} from "./interfaces/IRockPaperScissors.sol";
@@ -18,6 +19,8 @@ contract RockPaperScissors is
     using Counters for Counters.Counter;
 
     ICryptoHands private s_cryptoHands;
+
+    address private s_cryptoHandsAddress;
 
     uint256 private s_maxBet;
     uint256 private s_minBet;
@@ -39,6 +42,7 @@ contract RockPaperScissors is
         s_maxBet = _maxBet;
         s_minBet = _minBet;
         s_cryptoHands = ICryptoHands(_cryptoHands);
+        s_cryptoHandsAddress = _cryptoHands;
     }
 
     function makeBet(uint256 _choice)
@@ -78,6 +82,22 @@ contract RockPaperScissors is
         _createBetAndSettle(_choice, msg.sender, msg.value);
 
         s_nftWinPercentage[msg.sender] = s_nftWinPercentage[msg.sender] + 1;
+    }
+
+    function claim() external nonReentrant whenNotPaused {
+        uint256 totalSupply = IERC721A(s_cryptoHandsAddress).totalSupply();
+        uint256 nftBalance = IERC721A(s_cryptoHandsAddress).balanceOf(
+            msg.sender
+        );
+        require(nftBalance >= 1, "You must own 1 NFT");
+
+        uint256 contractBalance = address(this).balance;
+        uint256 claimableAmount = contractBalance / totalSupply;
+
+        uint256 userClaimableAmount = claimableAmount * nftBalance;
+
+        (bool os, ) = payable(owner()).call{value: userClaimableAmount}("");
+        require(os, "Failed to Claim");
     }
 
     function _createBetAndSettle(
@@ -294,6 +314,7 @@ contract RockPaperScissors is
 
     function updateCryptoHands(address _cryptoHands) external onlyOwner {
         s_cryptoHands = ICryptoHands(_cryptoHands);
+        s_cryptoHandsAddress = _cryptoHands;
         emit CryptoHandsUpdated(_cryptoHands);
     }
 

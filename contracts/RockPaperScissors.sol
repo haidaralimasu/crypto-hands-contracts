@@ -234,9 +234,7 @@ contract RockPaperScissors is
             keccak256(
                 abi.encodePacked(
                     s_betId.current(),
-                    _getBlockDifficulty(),
                     _getCurrentTime(),
-                    _getBlockNumber(),
                     _sender,
                     _num
                 )
@@ -272,20 +270,8 @@ contract RockPaperScissors is
         _outcome = _getChoiceAccordingToNumber(randomOutcome);
     }
 
-    function _getBlockDifficulty()
-        internal
-        view
-        returns (uint256 _blockDifficulty)
-    {
-        _blockDifficulty = block.difficulty;
-    }
-
     function _getCurrentTime() internal view returns (uint256 _currentTime) {
         _currentTime = block.timestamp;
-    }
-
-    function _getBlockNumber() internal view returns (uint256 _blockNumber) {
-        _blockNumber = block.number;
     }
 
     function getGameAddress()

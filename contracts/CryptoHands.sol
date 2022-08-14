@@ -28,6 +28,7 @@ contract CryptoHands is
 
     uint256 private s_price = 0.01 ether;
     uint256 private s_maxHandsPerTx = 3;
+    uint256 private s_cryptoHandsLimit = 3;
 
     bool private s_isPresale = false;
     bool private s_isRevealed = false;
@@ -77,6 +78,11 @@ contract CryptoHands is
             require(
                 s_isWhitelist[_receiver] == true,
                 "CryptoHands: Caller is not Whitelist"
+            );
+            _;
+            require(
+                _numberMinted(_receiver) <= s_cryptoHandsLimit,
+                "Mint limit exceed"
             );
             _;
         }
@@ -165,6 +171,15 @@ contract CryptoHands is
         emit HiddenUriUpdated(_hiddenUri);
     }
 
+    function updateNftMintLimit(uint256 _mintLimit)
+        external
+        override
+        onlyOwner
+    {
+        s_cryptoHandsLimit = _mintLimit;
+        emit NftMintLimitUpdated(_mintLimit);
+    }
+
     function pause() external override onlyOwner whenNotPaused {
         _pause();
     }
@@ -214,6 +229,15 @@ contract CryptoHands is
 
     function getPrice() external view override returns (uint256 _price) {
         _price = s_price;
+    }
+
+    function getNftMintLimit()
+        external
+        view
+        override
+        returns (uint256 _nftMintLimit)
+    {
+        _nftMintLimit = s_cryptoHandsLimit;
     }
 
     function getBaseUri()

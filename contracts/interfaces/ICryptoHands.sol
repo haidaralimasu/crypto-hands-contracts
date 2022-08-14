@@ -25,6 +25,8 @@ interface ICryptoHands {
 
     event GameAddressUpdated(address game);
 
+    event NftMintLimitUpdated(uint256 newmintLimit);
+
     function mintHands(uint256 _mintAmount) external payable;
 
     function winHands(address _winner) external;
@@ -40,6 +42,8 @@ interface ICryptoHands {
     function updateBaseUri(string memory _baseUri) external;
 
     function updateGameAddress(address _game) external;
+
+    function updateNftMintLimit(uint256 _nftMintLimit) external;
 
     function updateHiddenUri(string memory _hiddenUri) external;
 
@@ -83,6 +87,8 @@ interface ICryptoHands {
         returns (uint256 _totalHandsWinned);
 
     function getIsPresale() external view returns (bool _isPresale);
+
+    function getNftMintLimit() external view returns (uint256 _nftMintLimit);
 
     function getGameAddress() external view returns (address _game);
 

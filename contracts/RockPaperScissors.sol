@@ -27,6 +27,9 @@ contract RockPaperScissors is
 
     mapping(uint256 => Bet) public s_bets;
     mapping(address => uint256) public s_nftWinPercentage;
+    mapping(address => uint256) public s_gamesPlayed;
+    mapping(address => uint256) public s_gamesWon;
+    mapping(address => uint256) public s_nftWon;
 
     constructor(
         uint256 _maxBet,
@@ -93,6 +96,9 @@ contract RockPaperScissors is
         if (_result == Results.Win) {
             (bool hs, ) = payable(_player).call{value: winAmount}("");
             require(hs, "Failed to send MATIC 1");
+
+            s_gamesWon[_player] = s_gamesWon[_player] + 1;
+            s_nftWon[_player] = s_nftWon[_player] + 1;
         }
         if (_result == Results.Tie) {
             (bool hs, ) = payable(_player).call{value: _betAmount}("");
@@ -131,6 +137,8 @@ contract RockPaperScissors is
             _bet.result,
             _getCurrentTime()
         );
+
+        s_gamesPlayed[_player] = s_gamesPlayed[_player] + 1;
     }
 
     function _winOrLoose(GameChoices _playerChoice, GameChoices _outcome)
@@ -194,7 +202,7 @@ contract RockPaperScissors is
         returns (uint256 _winningPool)
     {
         uint256 balance = address(this).balance;
-        _winningPool = (_bet + balance) / s_divider;
+        _winningPool = (balance / s_divider) + _bet;
     }
 
     function _getRandomNumber(uint256 _num, address _sender)

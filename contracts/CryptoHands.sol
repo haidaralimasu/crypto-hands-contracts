@@ -30,7 +30,7 @@ contract CryptoHands is
     uint256 private s_maxHandsPerTx = 3;
     uint256 private s_cryptoHandsLimit = 3;
 
-    bool private s_isPresale = false;
+    bool private s_isPresale = true;
     bool private s_isRevealed = false;
 
     uint256 private s_totalMinted;
@@ -81,7 +81,7 @@ contract CryptoHands is
             );
             _;
             require(
-                _numberMinted(_receiver) <= s_cryptoHandsLimit,
+                _mintAmount + _numberMinted(_receiver) <= s_cryptoHandsLimit,
                 "Mint limit exceed"
             );
             _;
